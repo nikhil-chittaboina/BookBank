@@ -3,37 +3,41 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// --- Import your page components ---
-import Header from './components/Header'; // You'll need to update this to use the router links
-import LoginPage from './pages/Login'; // Assume you create a simple login page
-import HomePage from './pages/Home';   // Assume you create a simple Home page
-import CatalogPage from './pages/Catalog';
-import ProfilePage from './pages/Profile';
-import AdminDashboardPage from './pages/AdminDashboard';
+// --- Import Global Components ---
+import Header from './components/Header';
+import Login from './pages/Login'; 
+import Signup from './pages/SignUp';
+// Ensure you have these pages created in src/pages/:
+import Home from './pages/Home'; 
+import Catalog from './pages/Catalog'; 
+import Profile from './pages/Profile';
+import AdminDashboard from './pages/AD';
 // ------------------------------------
 
 const App = () => {
   return (
     <Router>
       <AuthProvider>
-        {/* Header will be visible on all pages */}
+        {/* Header is rendered globally above all pages */}
         <Header /> 
         
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
           
-          {/* Authenticated Routes (Any logged-in user) */}
-          <Route element={<ProtectedRoute allowedRoles={['admin', 'user']} />}>
-            <Route path="/catalog" element={<CatalogPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
+          {/* Authenticated Routes (Any logged-in user: 'admin' or 'user') */}
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'member', 'user']} />}>
+            <Route path="/catalog" element={<Catalog />} />
+            <Route path="/profile" element={<Profile />} />
+            {/* Add more general user routes here */}
           </Route>
 
           {/* Admin-Only Routes */}
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-            {/* Add more admin routes here */}
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            {/* Add more admin routes here (e.g., /admin/users, /admin/books) */}
           </Route>
 
           {/* Fallback Route */}
