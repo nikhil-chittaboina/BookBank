@@ -13,7 +13,7 @@ const mockMetrics = [
   { title: "Total Fines", value: 16, unit: '$' },
 ];
 
-const AD = () => {
+const AdminDashBoard = () => {
   const [activeTab, setActiveTab] = useState('Books Management');
   
   const renderTabContent = () => {
@@ -72,4 +72,4 @@ const AD = () => {
   );
 };
 
-export default AD;
+export default AdminDashBoard;

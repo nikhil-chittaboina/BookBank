@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Mail, Lock, LogIn, Clock,BookOpen} from 'lucide-react'; 
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import toast from 'react-hot-toast';
+
 // Assuming you have a dark book background image in public/images/
 const BG_IMAGE_URL = '/images/banner-images.jpeg'; 
 
@@ -12,21 +14,11 @@ const Login = () => {
   const { login } = useAuth(); 
 
   const handleSubmit = async (e) => {
+    console.log('Login form submitted');
     e.preventDefault();
-    
-    // ⚠️ INTEGRATE YOUR BACKEND API CALL HERE ⚠️
-    try {
-        // MOCK SUCCESS (Replace with real API response processing)
-        const mockUserData = { id: 'user-123', name: 'Test Admin', role: 'admin' }; 
-        
-        login(mockUserData);
-        
-        // Redirect based on role
-        navigate(mockUserData.role === 'admin' ? '/admin/dashboard' : '/profile');
-    } catch (error) {
-        console.error("Login failed:", error);
-        // Display error message to user
-    }
+    login({ email, password });
+  
+   
   };
 
   return (

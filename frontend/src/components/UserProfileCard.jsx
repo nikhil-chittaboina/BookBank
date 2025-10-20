@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Hash, Calendar, Shield, CreditCard, AlertTriangle } from 'lucide-react';
+import { Mail, Hash, Calendar, Shield, CreditCard, AlertTriangle,User } from 'lucide-react';
 
 const InfoItem = ({ Icon, label, value, isRole = false }) => (
   <div className="flex items-start mb-4">

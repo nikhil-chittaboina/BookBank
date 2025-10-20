@@ -2,15 +2,19 @@ import React from 'react';
 import Header from '../components/Header';
 import UserProfileCard from '../components/UserProfileCard';
 import LoanTable from '../components/LoanTable';
+import {useAuth} from '../context/AuthContext';
+
+// Mock User Data to match the screenshot
+// const user = {
+//   name: useAuth().user.name,
+//   email: useAuth().user.email,
+//   memberId: useAuth().user.memberId || 'MB123456',
+//   memberSince: useAuth().user.memberSince || '01/15/2022',
+//   role: useAuth().user.role
+// };
 
 // Mock Data to match the screenshot
-const mockUser = {
-  name: "John Doe",
-  email: "user@bookbank.com",
-  memberId: "MB001",
-  memberSince: "1/15/2024",
-  role: "USER"
-};
+
 
 const mockSummary = {
   activeBorrows: 1,
@@ -29,9 +33,29 @@ const mockHistoryLoans = [
 
 
 const Profile = () => {
+
+  const { user: authUser, isLoading } = useAuth();
+
+
+  if (isLoading || !authUser) {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <p>Loading user profile...</p>
+        </div>
+    );
+  }
+  const profileUser = {
+    name: authUser.name,
+    email: authUser.email,
+    // Safely use optional chaining for properties that might be undefined
+    memberId: authUser.memberId || 'MB123456', 
+    memberSince: authUser.memberSince || '01/15/2022',
+    role: authUser.role
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header activePage="Profile" />
+      
       <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
         
         {/* Page Title */}
@@ -43,7 +67,8 @@ const Profile = () => {
           
           {/* Left Column: Personal Info & Summary */}
           <div className="lg:col-span-1">
-            <UserProfileCard user={mockUser} summary={mockSummary} />
+            {/* ✅ Use the defined profileUser here */}
+            <UserProfileCard user={profileUser} summary={mockSummary} />
           </div>
 
           {/* Right Column: Loans & History */}
@@ -68,5 +93,4 @@ const Profile = () => {
     </div>
   );
 };
-
 export default Profile;

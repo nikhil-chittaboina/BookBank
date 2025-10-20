@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Mail, Lock, User, Clock, UserPlus,BookOpen} from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 // URL for a signup background image (You can replace this)
 const BG_IMAGE_URL = '/images/signup_bg_community.jpg'; 
+const SIGNUP_API_URL = 'http://localhost:5000/api/auth/register';
 
 const Signup = () => {
   const [name, setName] = useState('');
@@ -11,14 +13,38 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
+    // console,log('Signup form submitted');
     e.preventDefault();
     // ⚠️ TODO: Integrate with backend /api/auth/register here
     console.log('Signup attempt:', { name, email, password });
+
+    try{
+
+    const response=await fetch(SIGNUP_API_URL, {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({name,email,password})
+    });
+
+    if(!response.ok){
+      // Handle error (e.g., show message to user)
+      console.error("Signup failed with status:",response.status);
+      toast.error("Signup failed. Please try again.");
+      return;
+    }
+    toast.success("Signup successful! Please login.");
     
     // Redirect user to login after successful signup
-    navigate('/login'); 
-  };
+    navigate('/login');
+  } catch (error) {
+    // Handle network errors or other unexpected errors
+    toast.error("Network error during signup.");
+    console.error("Signup failed:", error);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-0 sm:p-4">
