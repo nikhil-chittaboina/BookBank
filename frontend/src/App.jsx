@@ -3,6 +3,7 @@ import { Toaster } from "react-hot-toast";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import BookDetailPage from "./pages/BookDetailPage";
 
 // --- Import Global Components ---
 import Header from "./components/Header";
@@ -43,6 +44,7 @@ const AppContent = () => {
         >
           <Route path="/catalog" element={<Catalog />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/book/:bookId" element={<BookDetailPage />} />
         </Route>
 
         {/* Admin-Only Routes */}

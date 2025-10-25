@@ -3,7 +3,7 @@
 const role = (requiredRole) => {
     return (req, res, next) => {
         const userRole = req.user.role;
-        console.log("Role middleware invoked. User role:", userRole);
+        console.log("2.Role middleware invoked. User role:", userRole);
         if (userRole === requiredRole) {
             next();
         } else {

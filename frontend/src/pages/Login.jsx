@@ -18,8 +18,7 @@ const Login = () => {
     e.preventDefault();
     login({ email, password });
   
-   
-  };
+   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-0 sm:p-4">
@@ -60,16 +59,7 @@ const Login = () => {
                 <h3 className="text-xl font-bold text-gray-700 mb-4">Sign In</h3>
                 <p className="text-sm text-gray-500 mb-6">Enter your credentials to access your account</p>
 
-                {/* Demo Credentials Box */}
-                <div className="bg-gray-50 p-3 border border-gray-200 rounded-lg mb-6">
-                    <div className="flex items-center text-sm text-gray-600 font-medium mb-1">
-                        <Clock className="w-4 h-4 mr-2 text-indigo-500" /> Demo Credentials:
-                    </div>
-                    <p className="text-xs ml-6">
-                        User: user@bookbank.com / user123 <br/>
-                        Admin: admin@bookbank.com / admin123
-                    </p>
-                </div>
+               
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {/* Email Input */}

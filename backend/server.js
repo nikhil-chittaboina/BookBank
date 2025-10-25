@@ -1,16 +1,25 @@
 const express=require('express');
-const bodyParser=require('body-parser');
+const app=express();
+// const bodyParser=require('body-parser');
 
 const cors=require('cors');
+const frontendOrigin = 'http://localhost:5173'; 
+
+// --- CORS Configuration ---
+const corsOptions = {
+    origin: frontendOrigin, // Set this to the exact origin of your React app
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true, // CRITICAL: MUST be true to allow cookies/credentials
+    allowedHeaders: 'Content-Type,Authorization', // Include headers you expect
+};
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
 
 const dotenv=require('dotenv'); 
+dotenv.config();
 
 const cookieParser=require('cookie-parser');
-
-
-const app=express();
-
-app.timeout = 10000; // Set timeout to 10 seconds
 
 app.use(express.json());
 app.use(cookieParser());
@@ -20,22 +29,26 @@ const bookRoutes=require('./routes/bookRoutes');
 const authRoutes=require('./routes/authRoutes');
 const adminUserRoutes=require('./routes/adminUserRoutes');
 const adminRoutes=require('./routes/adminRoutes');
+const loanRoutes=require('./routes/loanRoute');
+
+
 
 
 app.use('/api/books', bookRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin/users', adminUserRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/loans', loanRoutes);
 
 
 
 
-dotenv.config();
 
 
-app.use(bodyParser.json());
 
-app.use(cors());
+// app.use(bodyParser.json());
+
+
 
 app.get('/', (req, res) => {
     res.json({ message: 'Welcome to the BookBank API' });

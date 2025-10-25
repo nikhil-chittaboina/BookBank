@@ -3,7 +3,7 @@
 const jwt=require('jsonwebtoken');
 const protect=(req,res,next)=>{
     const token=req.cookies.token||'';
-    console.log("Protect middleware invoked. Token:", token);
+    console.log(" 1.Protect middleware invoked. Token:", token);
 
     if(!token){
         return res.status(401).json({error:'Unauthorized'});
@@ -12,7 +12,7 @@ const protect=(req,res,next)=>{
    try {
        const decoded = jwt.verify(token, 'your_jwt_secret');
        req.user = decoded;
-       console.log("User authenticated:", req.user);
+       console.log("2.User authenticated:", req.user);
        next();
    } catch (error) {  
        console.error('Error verifying token:', error);
