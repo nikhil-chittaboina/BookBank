@@ -56,7 +56,7 @@ const BookCard = ({ book }) => {
             {/* Content */}
             <div className="p-4">
                 <h3 className="text-lg font-bold text-gray-900 truncate">{title}</h3>
-                <p className="text-sm text-gray-500 mb-3">by **{authorString}**</p>
+                <p className="text-sm text-gray-500 mb-3">by {authorString}</p>
 
                 <div className="flex justify-between text-xs text-gray-600 mb-2">
                     <span>Category:</span>

@@ -1,34 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import Header from '../components/Header';
 import BookCard from '../components/BookCard';
 import { Search } from 'lucide-react';
-
-const BOOKS_API_URL = 'http://localhost:5000/api/books';
+import { fetchBooks } from '../api/BookApi';
 
 const Catalog = () => {
 
     const [books, setBooks] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [fetchTrigger, setFetchTrigger] = useState(0);
+    const [search, setSearch] = useState('');
+    const [genre, setGenre] = useState('all');
+    const [status, setStatus] = useState('all');
+    const [pagination, setPagination] = useState({ page: 1, totalPages: 1, totalCount: 0, limit: 12 });
+    const [genres, setGenres] = useState([]);
 
     useEffect(() => {
-        console.log('[CATALOG] Fetching books from API...');
         setIsLoading(true);
         const getBooks = async () => {
             try {
-                const response = await fetch(BOOKS_API_URL, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include', // Include cookies for authentication
+                const data = await fetchBooks({
+                    q: search,
+                    genre,
+                    status,
+                    page: pagination.page,
+                    limit: pagination.limit
                 });
-                
-                if (!response.ok) {
-                     throw new Error(`Failed to fetch books: Status ${response.status}`);
-                }
-                
-                const data = await response.json();
-                console.log(`[CATALOG] Received ${data.length} books.`);
-                setBooks(data);
+                setBooks(data.books || []);
+                setPagination(data.pagination || pagination);
+                setGenres(data.filters?.genres || []);
             } catch (error) {
                 console.error('Error fetching books:', error);
             } finally {
@@ -37,12 +35,7 @@ const Catalog = () => {
         };
 
         getBooks();
-    }, [fetchTrigger]);
-
-
-    const handleRefresh = () => { 
-        setFetchTrigger((prev) => prev + 1);
-    };
+    }, [search, genre, status, pagination.page, pagination.limit]);
     
     // Mock skeleton data for loading screen
     const mockSkeletonBooks = Array(8).fill(0).map((_, index) => ({ key: index }));
@@ -89,24 +82,43 @@ const Catalog = () => {
                         <input
                             type="text"
                             placeholder="Search by title, author, or ISBN..."
+                            value={search}
+                            onChange={(event) => {
+                                setPagination((prev) => ({ ...prev, page: 1 }));
+                                setSearch(event.target.value);
+                            }}
                             className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                         />
                     </div>
-                    <select className="py-2 px-4 border border-gray-300 rounded-lg w-full md:w-auto">
-                        <option>All Categories</option>
-                        <option>Fantasy</option>
-                        <option>Fiction</option>
-                        {/* ... other categories */}
+                    <select
+                        value={genre}
+                        onChange={(event) => {
+                            setPagination((prev) => ({ ...prev, page: 1 }));
+                            setGenre(event.target.value);
+                        }}
+                        className="py-2 px-4 border border-gray-300 rounded-lg w-full md:w-auto"
+                    >
+                        <option value="all">All Categories</option>
+                        {genres.map((item) => (
+                            <option key={item} value={item}>{item}</option>
+                        ))}
                     </select>
-                    <select className="py-2 px-4 border border-gray-300 rounded-lg w-full md:w-auto">
-                        <option>All Status</option>
-                        <option>Available</option>
-                        <option>Checked Out</option>
+                    <select
+                        value={status}
+                        onChange={(event) => {
+                            setPagination((prev) => ({ ...prev, page: 1 }));
+                            setStatus(event.target.value);
+                        }}
+                        className="py-2 px-4 border border-gray-300 rounded-lg w-full md:w-auto"
+                    >
+                        <option value="all">All Status</option>
+                        <option value="available">Available</option>
+                        <option value="checked_out">Checked Out</option>
                     </select>
                 </div>
 
                 {/* Book Count */}
-                <p className="text-sm text-gray-600 mb-6">Showing {books.length} of {books.length} books</p>
+                <p className="text-sm text-gray-600 mb-6">Showing {books.length} of {pagination.totalCount} books</p>
 
                 {/* Book Cards Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -114,6 +126,26 @@ const Catalog = () => {
                         // 🎯 FIX: Use the MongoDB _id as the React key
                         <BookCard key={book._id} book={book} /> 
                     ))}
+                </div>
+
+                <div className="mt-8 flex items-center justify-between">
+                    <button
+                        type="button"
+                        onClick={() => setPagination((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                        disabled={pagination.page <= 1}
+                        className="px-4 py-2 border rounded-lg disabled:opacity-50"
+                    >
+                        Previous
+                    </button>
+                    <p className="text-sm text-gray-600">Page {pagination.page} of {pagination.totalPages}</p>
+                    <button
+                        type="button"
+                        onClick={() => setPagination((prev) => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
+                        disabled={pagination.page >= pagination.totalPages}
+                        className="px-4 py-2 border rounded-lg disabled:opacity-50"
+                    >
+                        Next
+                    </button>
                 </div>
             </div>
         </div>

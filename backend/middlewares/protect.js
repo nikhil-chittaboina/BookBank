@@ -1,6 +1,7 @@
 
 // Middleware to protect routes and ensure user is authenticated
 const jwt=require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 const protect=(req,res,next)=>{
     const token=req.cookies.token||'';
     console.log(" 1.Protect middleware invoked. Token:", token);
@@ -10,7 +11,7 @@ const protect=(req,res,next)=>{
     }
 
    try {
-       const decoded = jwt.verify(token, 'your_jwt_secret');
+       const decoded = jwt.verify(token, JWT_SECRET);
        req.user = decoded;
        console.log("2.User authenticated:", req.user);
        next();

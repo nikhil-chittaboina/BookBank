@@ -1,6 +1,14 @@
 // BookApi.js
 const BASE_API_URL = 'http://localhost:5000/api/books'; 
 
+const parseJsonOrThrow = async (response) => {
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || data.message || `Request failed with status ${response.status}`);
+  }
+  return data;
+};
+
 /**
  * Fetches book details from the backend API.
  */
@@ -13,8 +21,7 @@ export const fetchBookData = async (bookId) => {
       credentials: 'include', 
     });
     
-    if (!response.ok) throw new Error(`Failed to fetch book details. Status: ${response.status}`);
-    const data = await response.json();
+    const data = await parseJsonOrThrow(response);
 
   //   const safeSummary = {
   //     ...data.summary,
@@ -46,6 +53,24 @@ return data;
   }
 };
 
+export const fetchBooks = async ({ q = '', genre = 'all', status = 'all', page = 1, limit = 12 } = {}) => {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (genre && genre !== 'all') params.set('genre', genre);
+  if (status && status !== 'all') params.set('status', status);
+  params.set('page', String(page));
+  params.set('limit', String(limit));
+
+  const endpoint = `${BASE_API_URL}?${params.toString()}`;
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+
+  return parseJsonOrThrow(response);
+};
+
 /**
  * Handles the API call to process the book borrow action.
  */
@@ -67,12 +92,28 @@ export const borrowBookApiCall = async (bookId, dueDate) => {
       }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-      throw new Error(errorData.message || `Borrow failed with status: ${response.status}`);
-    }
-    return await response.json(); 
+    return await parseJsonOrThrow(response); 
   } catch (error) {
     throw new Error(error.message || 'Failed to complete borrow transaction.'); 
   }
+};
+
+export const fetchBookRecommendations = async () => {
+  const endpoint = `${BASE_API_URL}/recommendations`;
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  return parseJsonOrThrow(response);
+};
+
+export const generateBookAiReview = async (bookId, regenerate = false) => {
+  const endpoint = `${BASE_API_URL}/${bookId}/ai-review${regenerate ? '?regenerate=true' : ''}`;
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  return parseJsonOrThrow(response);
 };

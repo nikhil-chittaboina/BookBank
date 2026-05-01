@@ -30,6 +30,7 @@ const authRoutes=require('./routes/authRoutes');
 const adminUserRoutes=require('./routes/adminUserRoutes');
 const adminRoutes=require('./routes/adminRoutes');
 const loanRoutes=require('./routes/loanRoute');
+const errorHandler = require('./middlewares/errorHandler');
 
 
 
@@ -53,6 +54,8 @@ app.use('/api/loans', loanRoutes);
 app.get('/', (req, res) => {
     res.json({ message: 'Welcome to the BookBank API' });
 });
+
+app.use(errorHandler);
 
 connectDB()
     .then(() => {

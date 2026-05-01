@@ -4,6 +4,9 @@ const router=express.Router();
 const User=require('../models/userModel');
 const jwt=require('jsonwebtoken');
 const bcrypt=require('bcrypt');
+const { body } = require('express-validator');
+const validate = require('../middlewares/validate');
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
 
 
@@ -16,12 +19,22 @@ const bcrypt=require('bcrypt');
         };
 
 // Register
-router.post('/register', async (req, res) => {
+router.post('/register',
+    body('name').isString().trim().isLength({ min: 2, max: 100 }),
+    body('email').isEmail().normalizeEmail(),
+    body('password').isString().isLength({ min: 6, max: 128 }),
+    validate,
+    async (req, res) => {
 
     console.log("Registering user with data:", req.body);
     const { name, email, password } = req.body;
     try {
         const memberId = generateMemberId();
+
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(409).json({ error: 'Email is already registered' });
+        }
 
        
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -44,7 +57,11 @@ router.post('/register', async (req, res) => {
 // Login
 /* This `router.post('/login', async (req, res) => { ... }` function is handling the login process for
 users. Here's a breakdown of what it does: */
-router.post('/login', async (req, res) => {
+router.post('/login',
+    body('email').isEmail().normalizeEmail(),
+    body('password').isString().isLength({ min: 6, max: 128 }),
+    validate,
+    async (req, res) => {
     const { email, password } = req.body;
     console.log("Login attempt with data:", req.body);
     try {
@@ -56,7 +73,7 @@ router.post('/login', async (req, res) => {
         if (!isMatch) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
-        const token = jwt.sign({ id: user._id, role: user.role }, 'your_jwt_secret', { expiresIn: '1h' });
+        const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
         res.cookie('token', token, { httpOnly: true });
         res.status(200).json({ message: 'User logged in successfully', user,token});
     } catch (error) {
@@ -70,7 +87,7 @@ router.post("/validate-token",async (req,res)=>{
     if(!token){
         return res.status(401).json({error:'No token provided'});
     }
-    const decoded=jwt.verify(token,'your_jwt_secret'); // we might not recieve all the details of the user from jwt you generaly put id and role so you fetch details anyway
+    const decoded=jwt.verify(token, JWT_SECRET); // we might not recieve all the details of the user from jwt you generaly put id and role so you fetch details anyway
     const user  =await User.findById(decoded.id).select('-password'); 
     if(!user){
         return res.status(401).json({error:'Invalid token'});

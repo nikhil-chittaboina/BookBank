@@ -1,18 +1,18 @@
 const express = require('express');
-const router = express.Router();
-const mongoose = require('mongoose'); 
+const rateLimit = require('express-rate-limit');
+const { param, query, body } = require('express-validator');
+const mongoose = require('mongoose');
 
-// ⚠️ Ensure these models are correctly imported based on your file structure
+const router = express.Router();
 const Book = require('../models/bookModel');
 const Loan = require('../models/loanModel');
-const User = require('../models/userModel'); 
-
+const User = require('../models/userModel');
 const protect = require('../middlewares/protect');
-const role = require('../middlewares/role'); 
+const role = require('../middlewares/role');
+const validate = require('../middlewares/validate');
+const { populateDatabase } = require('../utils/openLibraryBooksService');
+const { buildSourceHash, generateAiReview } = require('../utils/llmReviewService');
 
-const {populateDatabase}=require("../utils/openLibraryBooksService") // ⬅️ Import the service
-
-// Apply authentication middleware to all book routes
 router.use(protect);
 
 // --- TRANSACTION RETRY UTILITY FUNCTION (UPDATED LOGGING) ---
@@ -52,9 +52,14 @@ const withTransaction = async (fn, maxRetries = 3) => {
     throw new Error('Transaction failed after maximum retries due to persistent transient errors.');
 };
 
-// --- Standard CRUD Routes (Unchanged) ---
+const aiReviewLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 8,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many AI review requests. Please try again in a minute.' }
+});
 
-// Create a new book
 router.post('/', role('admin'), async (req, res) => {
     try {
         const newBook = new Book(req.body);
@@ -66,26 +71,114 @@ router.post('/', role('admin'), async (req, res) => {
     }
 });
 
-// Get all books
-router.get('/', async (req, res) => {
+router.get('/',
+    query('q').optional().isString().isLength({ max: 100 }),
+    query('genre').optional().isString().isLength({ max: 80 }),
+    query('status').optional().isIn(['all', 'available', 'checked_out']),
+    query('page').optional().isInt({ min: 1 }),
+    query('limit').optional().isInt({ min: 1, max: 50 }),
+    validate,
+    async (req, res) => {
     try {
-        console.log("Fetching all books from database");
-        const books = await Book.find();
-        res.status(200).json(books);
+        const { q = '', genre = '', status = 'all' } = req.query;
+        const page = Number(req.query.page || 1);
+        const limit = Number(req.query.limit || 12);
+        const skip = (page - 1) * limit;
+
+        const criteria = {};
+
+        if (q.trim()) {
+            criteria.$or = [
+                { title: { $regex: q.trim(), $options: 'i' } },
+                { author: { $regex: q.trim(), $options: 'i' } },
+                { isbn: { $regex: q.trim(), $options: 'i' } }
+            ];
+        }
+
+        if (genre && genre !== 'all') {
+            criteria.genre = genre;
+        }
+
+        if (status === 'available') {
+            criteria.availableCopies = { $gt: 0 };
+        } else if (status === 'checked_out') {
+            criteria.availableCopies = { $lte: 0 };
+        }
+
+        const [books, totalCount, genres] = await Promise.all([
+            Book.find(criteria).sort({ createdAt: -1 }).skip(skip).limit(limit),
+            Book.countDocuments(criteria),
+            Book.distinct('genre')
+        ]);
+
+        res.status(200).json({
+            books,
+            pagination: {
+                page,
+                limit,
+                totalCount,
+                totalPages: Math.max(1, Math.ceil(totalCount / limit))
+            },
+            filters: {
+                genres: genres.filter(Boolean).sort()
+            }
+        });
     } catch (error) {
         console.error('Error fetching books:', error);
         res.status(500).json({ error: 'Failed to fetch books' });
     }
 });
 
-// Get a book by ID
-router.get('/:id', async (req, res) => {
-    const bookId = req.params.id;
-    
-    if (!mongoose.Types.ObjectId.isValid(bookId)) {
-        return res.status(400).json({ error: 'Invalid Book ID format.' });
+router.get('/recommendations', async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const previousLoans = await Loan.find({ user: userId })
+            .populate('book', 'genre _id')
+            .sort({ createdAt: -1 })
+            .limit(30);
+
+        const genreScores = previousLoans.reduce((acc, item) => {
+            if (item.book?.genre) {
+                acc[item.book.genre] = (acc[item.book.genre] || 0) + 1;
+            }
+            return acc;
+        }, {});
+
+        const topGenres = Object.entries(genreScores)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([genre]) => genre);
+
+        const borrowedBookIds = previousLoans
+            .map((item) => item.book?._id)
+            .filter(Boolean);
+
+        const recommendations = await Book.find({
+            _id: { $nin: borrowedBookIds },
+            ...(topGenres.length ? { genre: { $in: topGenres } } : {})
+        })
+            .sort({ availableCopies: -1, createdAt: -1 })
+            .limit(8);
+
+        res.status(200).json({
+            recommendations,
+            strategy: topGenres.length
+                ? `history-based:${topGenres.join(',')}`
+                : 'fallback:latest'
+        });
+    } catch (error) {
+        console.error('Error generating recommendations:', error);
+        res.status(500).json({ error: 'Failed to generate recommendations' });
     }
-    
+});
+
+// Get a book by ID
+router.get('/:id',
+    param('id').isMongoId(),
+    validate,
+    async (req, res) => {
+    const bookId = req.params.id;
+
     try { 
         const book = await Book.findById(bookId);
         if (!book) {
@@ -140,17 +233,14 @@ const generateMemberId = () => {
 
 // --- NEW: Borrow Route (Final Integrated Logic) ---
 
-router.post('/:id/borrow', async (req, res) => {
+router.post('/:id/borrow',
+    param('id').isMongoId(),
+    body('dueDate').isISO8601(),
+    validate,
+    async (req, res) => {
     const user = req.user;
     const bookId = req.params.id; 
     const { dueDate } = req.body;
-
-    if (!mongoose.Types.ObjectId.isValid(bookId)) {
-        return res.status(400).json({ error: 'Invalid Book ID format.' });
-    }
-    if (!dueDate) {
-        return res.status(400).json({ error: 'Due date is required for borrowing.' });
-    }
 
     try {
         const result = await withTransaction(async (session) => {
@@ -208,13 +298,12 @@ router.post('/:id/borrow', async (req, res) => {
 
 // --- NEW: Return Route with Transaction and Retry Logic (Finalized Safety) ---
 
-router.post('/:id/return', async (req, res) => {
+router.post('/:id/return',
+    param('id').isMongoId(),
+    validate,
+    async (req, res) => {
     const user = req.user;
     const bookId = req.params.id;
-
-    if (!mongoose.Types.ObjectId.isValid(bookId)) {
-        return res.status(400).json({ error: 'Invalid Book ID format.' });
-    }
 
     try {
         const result = await withTransaction(async (session) => {
@@ -269,6 +358,41 @@ router.post('/:id/return', async (req, res) => {
         res.status(500).json({ error: 'Failed to process return request due to internal server failure.' });
     }
 });
+
+router.post('/:id/ai-review',
+    aiReviewLimiter,
+    param('id').isMongoId(),
+    query('regenerate').optional().isBoolean().toBoolean(),
+    validate,
+    async (req, res) => {
+        const regenerate = req.query.regenerate === true;
+        const book = await Book.findById(req.params.id);
+
+        if (!book) {
+            return res.status(404).json({ error: 'Book not found' });
+        }
+
+        const sourceHash = buildSourceHash(book);
+        const cacheIsValid = book.aiReview?.generatedAt
+            && book.aiReview.sourceHash === sourceHash;
+
+        if (cacheIsValid && !regenerate) {
+            return res.status(200).json({
+                review: book.aiReview,
+                cached: true
+            });
+        }
+
+        const review = await generateAiReview(book);
+        book.aiReview = review;
+        await book.save();
+
+        return res.status(200).json({
+            review: book.aiReview,
+            cached: false
+        });
+    }
+);
 
 
 // --- NEW ROUTE: Populate Database ---

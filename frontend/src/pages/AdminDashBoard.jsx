@@ -1,20 +1,70 @@
-import React, { useState } from'react';
-import Header from '../components/Header';
+import React, { useEffect, useState } from'react';
+import toast from 'react-hot-toast';
 import DashboardCard from '../components/DashboardCard';
 import AdminBookTable from '../components/AdminBookTable';
 // Placeholder for other admin tables
 // import AdminUserTable from '../components/AdminUserTable'; 
 // import AdminBorrowedTable from '../components/AdminBorrowedTable'; 
 
-const mockMetrics = [
-  { title: "Total Books", value: 57 },
-  { title: "Borrowed", value: 1 },
-  { title: "Active Users", value: 3 },
-  { title: "Total Fines", value: 16, unit: '$' },
-];
-
 const AdminDashBoard = () => {
   const [activeTab, setActiveTab] = useState('Books Management');
+  const [metrics, setMetrics] = useState([
+    { title: "Total Books", value: 0 },
+    { title: "Borrowed", value: 0 },
+    { title: "Active Users", value: 0 },
+    { title: "Total Fines", value: 0, unit: '$' },
+  ]);
+  const [popularBooks, setPopularBooks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadAnalytics = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('http://localhost:5000/api/admin/analytics', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load analytics');
+      }
+
+      setMetrics([
+        { title: "Total Books", value: data.metrics.totalBooks },
+        { title: "Borrowed", value: data.metrics.borrowedBooks },
+        { title: "Active Users", value: data.metrics.activeUsers },
+        { title: "Total Fines", value: data.metrics.totalFines, unit: '$' },
+      ]);
+      setPopularBooks(data.popularBooks || []);
+    } catch (error) {
+      toast.error(error.message || 'Failed to load analytics');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAnalytics();
+  }, []);
+
+  const runMetadataEnrichment = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/admin/enrich-books', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to enrich books');
+      }
+      toast.success(data.message || 'Book metadata updated.');
+      loadAnalytics();
+    } catch (error) {
+      toast.error(error.message || 'Failed to enrich books');
+    }
+  };
   
   const renderTabContent = () => {
     switch (activeTab) {
@@ -41,9 +91,39 @@ const AdminDashBoard = () => {
 
         {/* Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {mockMetrics.map((metric, index) => (
+          {metrics.map((metric, index) => (
             <DashboardCard key={index} {...metric} />
           ))}
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-xl p-5 mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-gray-800">Admin AI Utilities</h3>
+            <button
+              type="button"
+              onClick={runMetadataEnrichment}
+              className="px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+            >
+              Enrich Missing Metadata
+            </button>
+          </div>
+          <p className="text-sm text-gray-600">Auto-fills missing descriptions/genre placeholders for books.</p>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-xl p-5 mb-8">
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">Most Borrowed Books</h3>
+          {isLoading ? (
+            <p className="text-sm text-gray-500">Loading analytics...</p>
+          ) : (
+            <ul className="space-y-2">
+              {popularBooks.map((book) => (
+                <li key={book.bookId} className="text-sm text-gray-700">
+                  {book.title} by {book.author} - {book.borrowCount} borrows
+                </li>
+              ))}
+              {!popularBooks.length && <li className="text-sm text-gray-500">No loan history yet.</li>}
+            </ul>
+          )}
         </div>
 
         {/* Management Tabs */}

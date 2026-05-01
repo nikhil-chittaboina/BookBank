@@ -31,6 +31,16 @@ const BookSchema = new mongoose.Schema({
     coverImageUrl: { type: String },             // For Open Library image URL construction
     totalCopies: { type: Number, default: 1, min: 0 },
     availableCopies: { type: Number, default: 1, min: 0 }, // The count available for checkout
+
+    aiReview: {
+        summary: { type: String, default: '' },
+        strengths: [{ type: String }],
+        idealFor: { type: String, default: '' },
+        readingTips: [{ type: String }],
+        model: { type: String, default: '' },
+        generatedAt: { type: Date, default: null },
+        sourceHash: { type: String, default: '' }
+    },
 }, { timestamps: true });
 
 const Book = mongoose.model('Book', BookSchema);
