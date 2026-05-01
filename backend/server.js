@@ -3,7 +3,7 @@ const app=express();
 // const bodyParser=require('body-parser');
 
 const cors=require('cors');
-const frontendOrigin = 'http://localhost:5173'; 
+const frontendOrigin = 'https://book-bank-tau.vercel.app/'; 
 
 // --- CORS Configuration ---
 const corsOptions = {
