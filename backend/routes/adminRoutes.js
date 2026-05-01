@@ -5,6 +5,7 @@ const router = express.Router();
 const protect = require('../middlewares/protect'); 
 const role = require('../middlewares/role'); 
 const { populateDatabase } = require('../utils/openLibraryBooksService'); 
+const { resolveCoverForBook } = require('../utils/coverResolverService');
 const Book = require('../models/bookModel');
 const User = require('../models/userModel');
 const Loan = require('../models/loanModel');
@@ -59,6 +60,40 @@ router.post('/enrich-books', async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ error: 'Book enrichment failed.', details: error.message });
+    }
+});
+
+router.post('/enrich-covers', async (req, res) => {
+    try {
+        const books = await Book.find({
+            $or: [
+                { coverImageUrl: { $exists: false } },
+                { coverImageUrl: null },
+                { coverImageUrl: '' }
+            ]
+        }).limit(300);
+
+        let updatedCount = 0;
+        let unresolvedCount = 0;
+
+        for (const book of books) {
+            const resolvedCover = await resolveCoverForBook(book);
+            if (!resolvedCover) {
+                unresolvedCount += 1;
+                continue;
+            }
+            book.coverImageUrl = resolvedCover;
+            await book.save();
+            updatedCount += 1;
+        }
+
+        res.status(200).json({
+            message: `Cover enrichment completed. Updated ${updatedCount} books.`,
+            updatedCount,
+            unresolvedCount
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Cover enrichment failed.', details: error.message });
     }
 });
 

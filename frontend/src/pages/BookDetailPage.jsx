@@ -8,6 +8,13 @@ import { fetchBookData, fetchBookRecommendations, generateBookAiReview } from '.
 // Fallback image path (Ensure this path exists in your public folder)
 const DEFAULT_IMAGE_PATH = "/images/banner2.jpeg";
 
+const buildIsbnCoverUrl = (isbn) => {
+    if (!isbn) return '';
+    const normalized = String(isbn).replace(/[^0-9Xx]/g, '');
+    if (!normalized) return '';
+    return `https://covers.openlibrary.org/b/isbn/${normalized}-L.jpg`;
+};
+
 const BookDetailPage = () => {
     // Correctly extract the ID from the URL parameter
     const { bookId } = useParams();
@@ -112,6 +119,7 @@ const BookDetailPage = () => {
 
     const status = availableCopies > 0 ? 'AVAILABLE' : 'CHECKED OUT';
     const isAvailable = availableCopies > 0;
+    const mainCover = coverImageUrl || buildIsbnCoverUrl(isbn) || DEFAULT_IMAGE_PATH;
 
     return (
         <div className="book-detail-page p-8 bg-gray-50 min-h-screen">
@@ -130,9 +138,13 @@ const BookDetailPage = () => {
 
                         <div className="w-full aspect-[2/3] overflow-hidden rounded-lg shadow-xl mb-6">
                             <img
-                                src={coverImageUrl || DEFAULT_IMAGE_PATH}
+                                src={mainCover}
                                 alt={`${title} cover`}
                                 className="book-cover-image w-full h-full object-cover"
+                                onError={(event) => {
+                                    event.target.onerror = null;
+                                    event.target.src = DEFAULT_IMAGE_PATH;
+                                }}
                             />
                         </div>
 
@@ -243,6 +255,10 @@ const BookDetailPage = () => {
                                             src={b.coverImageUrl || DEFAULT_IMAGE_PATH}
                                             alt={b.title}
                                             className="similar-book-image w-full h-40 object-cover rounded-lg shadow-md mb-2"
+                                            onError={(event) => {
+                                                event.target.onerror = null;
+                                                event.target.src = DEFAULT_IMAGE_PATH;
+                                            }}
                                         />
                                         <p className="similar-book-title text-sm font-medium text-gray-800 truncate">{b.title}</p>
                                         <p className="similar-book-author text-xs text-gray-500 truncate">{b.author}</p>

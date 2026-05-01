@@ -65,6 +65,23 @@ const AdminDashBoard = () => {
       toast.error(error.message || 'Failed to enrich books');
     }
   };
+
+  const runCoverEnrichment = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/admin/enrich-covers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to enrich covers');
+      }
+      toast.success(data.message || 'Book covers updated.');
+    } catch (error) {
+      toast.error(error.message || 'Failed to enrich covers');
+    }
+  };
   
   const renderTabContent = () => {
     switch (activeTab) {
@@ -99,15 +116,24 @@ const AdminDashBoard = () => {
         <div className="bg-white border border-gray-200 rounded-xl p-5 mb-8">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-semibold text-gray-800">Admin AI Utilities</h3>
-            <button
-              type="button"
-              onClick={runMetadataEnrichment}
-              className="px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
-            >
-              Enrich Missing Metadata
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={runMetadataEnrichment}
+                className="px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+              >
+                Enrich Missing Metadata
+              </button>
+              <button
+                type="button"
+                onClick={runCoverEnrichment}
+                className="px-4 py-2 text-sm rounded-lg border border-indigo-600 text-indigo-700 hover:bg-indigo-50"
+              >
+                Enrich Missing Covers
+              </button>
+            </div>
           </div>
-          <p className="text-sm text-gray-600">Auto-fills missing descriptions/genre placeholders for books.</p>
+          <p className="text-sm text-gray-600">Auto-fills missing descriptions/genre placeholders and resolves cover images.</p>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl p-5 mb-8">

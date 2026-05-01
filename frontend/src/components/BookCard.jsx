@@ -5,6 +5,13 @@ import { Link } from 'react-router-dom';
 // Fallback image path (Ensure this path exists in your public folder)
 const DEFAULT_IMAGE_PATH = "/images/banner2.jpeg"; 
 
+const buildIsbnCoverUrl = (isbn) => {
+    if (!isbn) return '';
+    const normalized = String(isbn).replace(/[^0-9Xx]/g, '');
+    if (!normalized) return '';
+    return `https://covers.openlibrary.org/b/isbn/${normalized}-L.jpg`;
+};
+
 const BookCard = ({ book }) => {
 
     // --- 1. Data Validation and Extraction (From MongoDB Document) ---
@@ -20,7 +27,8 @@ const BookCard = ({ book }) => {
         _id, // ⬅️ CRITICAL: Using the Mongoose standard primary key
         availableCopies = 0, 
         totalCopies = 0,     
-        coverImageUrl      
+        coverImageUrl,
+        isbn
     } = book;
 
     // Safely process the Author field (assuming it's a single string)
@@ -35,6 +43,7 @@ const BookCard = ({ book }) => {
         : 'bg-red-600 text-white';
     
     const detailsColor = availableCopies > 0 ? 'text-indigo-600' : 'text-red-600';
+    const primaryCover = coverImageUrl || buildIsbnCoverUrl(isbn) || DEFAULT_IMAGE_PATH;
 
     return (
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
@@ -43,7 +52,7 @@ const BookCard = ({ book }) => {
             <div className="relative h-48 bg-gray-200 flex items-center justify-center">
                 <img 
                     // Use coverImageUrl from MongoDB, falling back to local file
-                    src={coverImageUrl || DEFAULT_IMAGE_PATH} 
+                    src={primaryCover} 
                     alt={title} 
                     className="w-full h-full object-cover" 
                     onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_IMAGE_PATH; }}
