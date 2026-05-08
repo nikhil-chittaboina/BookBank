@@ -2,9 +2,10 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
-const API_URL = 'http://localhost:5000/api/auth/validate-token'; 
-const LOGIN_URL = 'http://localhost:5000/api/auth/login'; 
-const LOGOUT_URL = 'http://localhost:5000/api/auth/logout'; 
+const BASE_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = `${BASE_API_URL}/api/auth/validate-token`; 
+const LOGIN_URL = `${BASE_API_URL}/api/auth/login`; 
+const LOGOUT_URL = `${BASE_API_URL}/api/auth/logout`; 
 
 // --- 1. Define the Context ---
 const AuthContext = createContext(null);

@@ -1,6 +1,6 @@
 // src/api/userApi.js
 
-const BASE_API_URL = 'http://localhost:5000/api'; 
+const BASE_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'; 
 
 /**
  * Fetches the user's active and historical loan data, along with the summary.
@@ -32,7 +32,7 @@ export const fetchUserLoans = async () => {
  */
 export const returnBookApiCall = async (bookId) => {
     // Note: We use the bookId in the path, matching the backend route setup.
-    const API_ENDPOINT = `http://localhost:5000/api/books/${bookId}/return`;
+    const API_ENDPOINT = `${BASE_API_URL}/books/${bookId}/return`;
     
     try {
         const response = await fetch(API_ENDPOINT, {

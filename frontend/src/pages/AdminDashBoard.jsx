@@ -17,10 +17,12 @@ const AdminDashBoard = () => {
   const [popularBooks, setPopularBooks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const BASE_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
   const loadAnalytics = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:5000/api/admin/analytics', {
+      const response = await fetch(`${BASE_API_URL}/api/admin/analytics`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -50,7 +52,7 @@ const AdminDashBoard = () => {
 
   const runMetadataEnrichment = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/admin/enrich-books', {
+      const response = await fetch(`${BASE_API_URL}/api/admin/enrich-books`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -68,7 +70,7 @@ const AdminDashBoard = () => {
 
   const runCoverEnrichment = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/admin/enrich-covers', {
+      const response = await fetch(`${BASE_API_URL}/api/admin/enrich-covers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

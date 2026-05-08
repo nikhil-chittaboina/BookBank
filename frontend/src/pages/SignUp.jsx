@@ -5,7 +5,8 @@ import toast from 'react-hot-toast';
 
 // URL for a signup background image (You can replace this)
 const BG_IMAGE_URL = '/images/signup_bg_community.jpg'; 
-const SIGNUP_API_URL = 'http://localhost:5000/api/auth/register';
+const BASE_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const SIGNUP_API_URL = `${BASE_API_URL}/api/auth/register`;
 
 const Signup = () => {
   const [name, setName] = useState('');

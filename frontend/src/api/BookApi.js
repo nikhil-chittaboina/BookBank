@@ -1,5 +1,5 @@
 // BookApi.js
-const BASE_API_URL = 'http://localhost:5000/api/books'; 
+const BASE_API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/books`; 
 
 const parseJsonOrThrow = async (response) => {
   const data = await response.json().catch(() => ({}));
